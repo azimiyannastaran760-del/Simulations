@@ -1,2 +1,140 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+# -----------------------------
+# تنظیمات شبیه‌سازی
+# -----------------------------
+
+G = 1.0          # ثابت گرانش در واحدهای ساده‌شده
+M = 1.0          # جرم خورشید
+dt = 0.01        # گام زمانی
+steps = 3000     # تعداد مراحل
+
+# مکان و سرعت اولیه سیاره
+position = np.array([1.0, 0.0])
+velocity = np.array([0.0, 1.0])
+
+# ذخیره مسیر سیاره
+positions = []
+
+
+# -----------------------------
+# محاسبه شتاب گرانشی
+# -----------------------------
+
+def acceleration(r):
+    distance = np.linalg.norm(r)
+
+    # a = -GM/r^3 * r
+    return -G * M * r / distance**3
+
+
+# -----------------------------
+# شبیه‌سازی با روش Verlet
+# -----------------------------
+
+for i in range(steps):
+
+    positions.append(position.copy())
+
+    # شتاب فعلی
+    a = acceleration(position)
+
+    # مکان جدید
+    new_position = (
+        position
+        + velocity * dt
+        + 0.5 * a * dt**2
+    )
+
+    # شتاب در مکان جدید
+    new_acceleration = acceleration(new_position)
+
+    # سرعت جدید
+    new_velocity = (
+        velocity
+        + 0.5 * (a + new_acceleration) * dt
+    )
+
+    position = new_position
+    velocity = new_velocity
+
+
+positions = np.array(positions)
+
+
+# -----------------------------
+# رسم مدار
+# -----------------------------
+
+fig, ax = plt.subplots()
+
+ax.set_aspect("equal")
+
+ax.set_xlim(-1.5, 1.5)
+ax.set_ylim(-1.5, 1.5)
+
+ax.set_xlabel("X")
+ax.set_ylabel("Y")
+ax.set_title("Planet Orbit Simulation")
+
+# خورشید
+sun, = ax.plot(
+    0, 0,
+    "o",
+    markersize=15,
+    label="Sun"
+)
+
+# مسیر مدار
+orbit, = ax.plot(
+    [],
+    [],
+    "-",
+    linewidth=1
+)
+
+# خود سیاره
+planet, = ax.plot(
+    [],
+    [],
+    "o",
+    markersize=8
+)
+
+
+# -----------------------------
+# تابع انیمیشن
+# -----------------------------
+
+def update(frame):
+
+    # مسیر طی‌شده
+    orbit.set_data(
+        positions[:frame, 0],
+        positions[:frame, 1]
+    )
+
+    # موقعیت فعلی سیاره
+    planet.set_data(
+        [positions[frame, 0]],
+        [positions[frame, 1]]
+    )
+
+    return orbit, planet
+
+
+# ساخت انیمیشن
+animation = FuncAnimation(
+    fig,
+    update,
+    frames=len(positions),
+    interval=10,
+    blit=True
+)
+
+plt.legend()
+plt.show()
